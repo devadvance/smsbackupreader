@@ -32,7 +32,9 @@ import org.xml.sax.SAXException;
  */
 public class smsBackupReaderGUI extends javax.swing.JFrame {
 
+    // Semi-global variables. Used in more than one method.
     File openFile;
+    private static String countryCode;
     
     private static message getText(Element empEl)
 	{
@@ -40,26 +42,27 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 		addressString = removeExtraDigits(addressString);
 			
 		BigInteger address = new BigInteger(addressString);
-		//System.out.println(address.toString());
 		
 		BigInteger date = new BigInteger(empEl.getAttribute("date"));
 		String body = empEl.getAttribute("body");
 		int type = Integer.parseInt(empEl.getAttribute("type"));
 
-		//Create a new Employee with the value read from the xml nodes
+		
 		message e = new message(address,date,body,type);
 		
 		return e;
 	}
 
-	private static String removeExtraDigits(String inputAddress)
-	{
-		inputAddress = inputAddress.replaceAll("\\D", "");
-		if (inputAddress.charAt(0) == '1')
-			inputAddress = inputAddress.substring(1);
-		return inputAddress;
-	}
+    // Removes non-digits and country code from phone number
+    private static String removeExtraDigits(String inputAddress)
+    {
+	inputAddress = inputAddress.replaceAll("\\D", "");
+	if (inputAddress.startsWith(countryCode))
+		inputAddress = inputAddress.substring(countryCode.length());
+	return inputAddress;
+    }
     
+    // message object
     private static class message
 	{
 		private String messageText;
@@ -85,7 +88,6 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 			messageAddress = address;
                         messageDateFormat = new Date(messageDate.longValue());
 		}
-		
 		
 		public void setMessageText(String input)
 		{
@@ -193,14 +195,6 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 	}
     
     
-    
-    
-    
-    
-    
-    
-    
-    
     /** Creates new form smsBackupReaderGUI */
     public smsBackupReaderGUI() {
         initComponents();
@@ -226,6 +220,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         messageTextBox = new javax.swing.JTextArea();
         jLabel2 = new javax.swing.JLabel();
         numberTextBox = new javax.swing.JTextField();
+        areaCodeTextBox = new javax.swing.JTextField();
         menuBar = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         exitMenuButton = new javax.swing.JMenu();
@@ -251,7 +246,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
             }
         });
 
-        jLabel1.setText("Start by choosing an XML backup file to load:");
+        jLabel1.setText("Enter your country code (US is 1, UK is 44, ...) :");
 
         contactListBox.setModel(new javax.swing.AbstractListModel() {
             String[] strings = { "Contacts load here..." };
@@ -276,7 +271,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
         messageTextBox.setColumns(20);
         messageTextBox.setEditable(false);
-        messageTextBox.setFont(new java.awt.Font("Arial", 0, 12));
+        messageTextBox.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         messageTextBox.setLineWrap(true);
         messageTextBox.setRows(5);
         messageTextBox.setText("This is where the messages will show up.");
@@ -285,6 +280,15 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         jLabel2.setText("Number of SMS:");
 
         numberTextBox.setEditable(false);
+        numberTextBox.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+
+        areaCodeTextBox.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        areaCodeTextBox.setText("1");
+        areaCodeTextBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                areaCodeTextBoxActionPerformed(evt);
+            }
+        });
 
         jMenu1.setText("File");
 
@@ -317,7 +321,10 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(areaCodeTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(fileLocationField, javax.swing.GroupLayout.DEFAULT_SIZE, 483, Short.MAX_VALUE)
@@ -339,7 +346,9 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(17, 17, 17)
-                .addComponent(jLabel1)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(areaCodeTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(chooseButton)
@@ -356,11 +365,14 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
+        getAccessibleContext().setAccessibleName("SMS Backup Reader v0.2");
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void chooseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_chooseButtonActionPerformed
         // TODO add your handling code here:
+        JOptionPane.showMessageDialog(rootPane, "Not all messages may show up under the correct contact.\nThis is due to Android storing numbers in different formats, such as +44 07xxx xxxxxx instead of just 07xxx xxxxxx.\n");
         String tempLocation;
         int returnValue = fileChooser.showOpenDialog(smsBackupReaderGUI.this);
         if (returnValue == JFileChooser.APPROVE_OPTION)
@@ -376,68 +388,66 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     }//GEN-LAST:event_fileLocationFieldActionPerformed
 
     private void loadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadButtonActionPerformed
-        try {
-            // TODO add your handling code here:
-                
-                contactListBox.setEnabled(true);
-                contactListBox.removeAll();
-                messageTextBox.removeAll();
-                
-                Hashtable contactTable = new Hashtable(250);
+        if (!(fileLocationField.getText().equals("...")))
+            try {
+                // TODO add your handling code here:
 
-                File fXmlFile = openFile;
-                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                Document doc = dBuilder.parse(fXmlFile);
-                doc.getDocumentElement().normalize();
+                    contactListBox.setEnabled(true);
+                    contactListBox.removeAll();
+                    messageTextBox.removeAll();
 
-                Element docEle = doc.getDocumentElement();
+                    // Depreciated object. To be replaced with Hashmap?
+                    Hashtable contactTable = new Hashtable(250);
 
-                //get a nodelist of elements
-                NodeList nl = docEle.getElementsByTagName("sms");
-                if(nl != null && nl.getLength() > 0) {
-                        numberTextBox.setText("" + nl.getLength());
-                        for(int i = 0 ; i < nl.getLength();i++) {
+                    // Get country code from areaCodeTextBox
+                    countryCode = areaCodeTextBox.getText();
 
-                                //get the message element
-                                Element el = (Element)nl.item(i);
+                    File fXmlFile = openFile;
+                    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                    Document doc = dBuilder.parse(fXmlFile);
+                    doc.getDocumentElement().normalize();
 
-                                //get the message object
-                                message e = getText(el);
+                    Element docEle = doc.getDocumentElement();
 
+                    // Get a nodelist of elements in the XML file
+                    NodeList nl = docEle.getElementsByTagName("sms");
+                    if(nl != null && nl.getLength() > 0) {
+                            numberTextBox.setText("" + nl.getLength());
+                            for(int i = 0 ; i < nl.getLength();i++) {
 
-                                //Testing adding messages and contacts to hashtable :)
+                                    //Get the message element
+                                    Element el = (Element)nl.item(i);
 
-
-                                if (contactTable.containsKey(e.getMessageAddress()))
-                                {
-                                        ((contact)contactTable.get(e.getMessageAddress())).addMessage(e);
-                                }
-                                else
-                                {
-                                        contact tempContact = new contact(el.getAttribute("contact_name"), e.getMessageAddress());
-                                        tempContact.addMessage(e);
-                                        contactTable.put(e.getMessageAddress(), tempContact);
-                                }
+                                    // Get the message object
+                                    message e = getText(el);
 
 
+                                    // Begin code to add/update contact in Hashtable
+                                    if (contactTable.containsKey(e.getMessageAddress()))
+                                    {
+                                            ((contact)contactTable.get(e.getMessageAddress())).addMessage(e);
+                                    }
+                                    else
+                                    {
+                                            contact tempContact = new contact(el.getAttribute("contact_name"), e.getMessageAddress());
+                                            tempContact.addMessage(e);
+                                            contactTable.put(e.getMessageAddress(), tempContact);
+                                    }
+                                    // End section
+                            }
+                    }
+                    Collection tempColl = contactTable.values();
+                    contact[] contactArray = (contact[])tempColl.toArray(new contact[contactTable.size()]);
+                    contactListBox.setListData(contactArray);
 
-
-
-                                // End testing section
-                        }
-                }
-                Collection tempColl = contactTable.values();
-                contact[] contactArray = (contact[])tempColl.toArray(new contact[contactTable.size()]);
-                contactListBox.setListData(contactArray);
-                
-        } catch (SAXException ex) {
-            Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ParserConfigurationException ex) {
-            Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            } catch (SAXException ex) {
+                Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ParserConfigurationException ex) {
+                Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
         
     }//GEN-LAST:event_loadButtonActionPerformed
 
@@ -453,15 +463,18 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
     private void aboutMenuButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutMenuButtonActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(rootPane, "SMS Backup Reader\nv0.1 - 2011-07-30\nBy xtnetworks");
+        JOptionPane.showMessageDialog(rootPane, "SMS Backup Reader\nv0.2 - 2011-08-03\nBy xtnetworks");
     }//GEN-LAST:event_aboutMenuButtonActionPerformed
+
+    private void areaCodeTextBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_areaCodeTextBoxActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_areaCodeTextBoxActionPerformed
 
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
-
             public void run() {
                 new smsBackupReaderGUI().setVisible(true);
             }
@@ -469,6 +482,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenuItem aboutMenuButton;
+    private javax.swing.JTextField areaCodeTextBox;
     private javax.swing.JButton chooseButton;
     private javax.swing.JList contactListBox;
     private javax.swing.JMenu exitMenuButton;
