@@ -17,6 +17,7 @@ import java.util.*;
 import java.io.*;
 import java.math.BigInteger;
 import javax.swing.JOptionPane;
+import javax.swing.ListModel;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -34,6 +35,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
     // Semi-global variables. Used in more than one method.
     File openFile;
+    File saveFile;
     private static String countryCode;
     
     private static message getText(Element empEl)
@@ -210,6 +212,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     private void initComponents() {
 
         fileChooser = new javax.swing.JFileChooser();
+        saveChooser = new javax.swing.JFileChooser();
         fileLocationField = new javax.swing.JTextField();
         chooseButton = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
@@ -221,6 +224,10 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         jLabel2 = new javax.swing.JLabel();
         numberTextBox = new javax.swing.JTextField();
         areaCodeTextBox = new javax.swing.JTextField();
+        exportButton = new javax.swing.JButton();
+        exportFileField = new javax.swing.JTextField();
+        exportSelectedButton = new javax.swing.JButton();
+        jLabel3 = new javax.swing.JLabel();
         menuBar = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         exitMenuButton = new javax.swing.JMenu();
@@ -228,8 +235,12 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         helpMenuButton = new javax.swing.JMenuItem();
         aboutMenuButton = new javax.swing.JMenuItem();
 
+        saveChooser.setDialogTitle("Choose a file to save as...");
+        saveChooser.setDialogType(javax.swing.JFileChooser.SAVE_DIALOG);
+        saveChooser.setSelectedFile(new java.io.File("C:\\Program Files (x86)\\NetBeans 7.0\\SMS_Export.txt"));
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("SMS Backup Reader v0.1");
+        setTitle("SMS Backup Reader v0.3.5");
 
         fileLocationField.setEditable(false);
         fileLocationField.setText("...");
@@ -263,6 +274,9 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         jScrollPane1.setViewportView(contactListBox);
 
         loadButton.setText("Load!");
+        loadButton.setMaximumSize(new java.awt.Dimension(87, 23));
+        loadButton.setMinimumSize(new java.awt.Dimension(87, 23));
+        loadButton.setPreferredSize(new java.awt.Dimension(87, 23));
         loadButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 loadButtonActionPerformed(evt);
@@ -289,6 +303,30 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                 areaCodeTextBoxActionPerformed(evt);
             }
         });
+
+        exportButton.setText("Export All");
+        exportButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exportButtonActionPerformed(evt);
+            }
+        });
+
+        exportFileField.setText("...");
+        exportFileField.setOpaque(false);
+        exportFileField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exportFileFieldActionPerformed(evt);
+            }
+        });
+
+        exportSelectedButton.setText("Export Selected");
+        exportSelectedButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exportSelectedButtonActionPerformed(evt);
+            }
+        });
+
+        jLabel3.setText("Use the options below to export the SMS to a text file. You can either export the selected contact, or all:");
 
         jMenu1.setText("File");
 
@@ -339,7 +377,14 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 374, Short.MAX_VALUE)))
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 374, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addComponent(exportFileField, javax.swing.GroupLayout.DEFAULT_SIZE, 364, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(exportSelectedButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(exportButton, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel3))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -355,17 +400,24 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                     .addComponent(fileLocationField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(loadButton)
+                    .addComponent(loadButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel2)
                     .addComponent(numberTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 368, Short.MAX_VALUE)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 368, Short.MAX_VALUE))
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 322, Short.MAX_VALUE)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 322, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(exportFileField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(exportButton)
+                    .addComponent(exportSelectedButton))
                 .addContainerGap())
         );
 
-        getAccessibleContext().setAccessibleName("SMS Backup Reader v0.2");
+        getAccessibleContext().setAccessibleName("SMS Backup Reader v0.3.5");
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -388,7 +440,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     }//GEN-LAST:event_fileLocationFieldActionPerformed
 
     private void loadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadButtonActionPerformed
-        if (!(fileLocationField.getText().equals("...")))
+        if (!(fileLocationField.getText().equals("..."))) {
             try {
                 // TODO add your handling code here:
 
@@ -440,6 +492,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                     Collection tempColl = contactTable.values();
                     contact[] contactArray = (contact[])tempColl.toArray(new contact[contactTable.size()]);
                     contactListBox.setListData(contactArray);
+                    contactListBox.setEnabled(true);
 
             } catch (SAXException ex) {
                 Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
@@ -448,7 +501,10 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
             } catch (ParserConfigurationException ex) {
                 Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
             }
-        
+        }
+        else {
+            JOptionPane.showMessageDialog(rootPane, "Choose SMS backup file first!");
+        }
     }//GEN-LAST:event_loadButtonActionPerformed
 
     private void contactListBoxValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_contactListBoxValueChanged
@@ -463,12 +519,110 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
     private void aboutMenuButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutMenuButtonActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(rootPane, "SMS Backup Reader\nv0.2 - 2011-08-03\nBy xtnetworks");
+        JOptionPane.showMessageDialog(rootPane, "SMS Backup Reader\nv0.3.5 - 2011-10-26\nBy xtnetworks\nxtnetworks@users.sf.net");
     }//GEN-LAST:event_aboutMenuButtonActionPerformed
 
     private void areaCodeTextBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_areaCodeTextBoxActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_areaCodeTextBoxActionPerformed
+
+    private void exportButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportButtonActionPerformed
+        // TODO add your handling code here:
+        if (!(fileLocationField.getText().equals("...")) && (contactListBox.isEnabled())) {
+            try {
+
+                BufferedWriter outputWriter = null;
+
+                String tempLocation = "";
+                int returnValue = saveChooser.showSaveDialog(smsBackupReaderGUI.this);
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                saveFile = saveChooser.getSelectedFile();
+                tempLocation = saveFile.getAbsolutePath();
+                exportFileField.setText(tempLocation);
+
+                outputWriter = new BufferedWriter(new FileWriter(tempLocation));
+
+                ArrayList<message> selectedMessages;
+                ListModel tempList = contactListBox.getModel();
+                int numberOfContacts = tempList.getSize();
+                contact selectedContact;
+
+                for (int counter = 0; counter < numberOfContacts;counter++) {
+                    selectedContact = (contact)tempList.getElementAt(counter);
+                    selectedMessages = selectedContact.getMessages();
+
+                    outputWriter.write(selectedContact.toString());
+                    outputWriter.newLine();
+                    outputWriter.newLine();
+
+                    for (int i = 0;i < selectedMessages.size();i++) {
+                        outputWriter.write(selectedMessages.get(i).toString());
+                        outputWriter.newLine();
+                    }
+
+                    outputWriter.write("++++++++++++++++++++++++++++++++++++++++++++++++++");
+                    outputWriter.newLine();
+                }
+
+                if (outputWriter != null) {
+                    outputWriter.flush();
+                    outputWriter.close();
+                }
+
+            }
+            } catch (IOException ex) {
+                Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+       else {
+            JOptionPane.showMessageDialog(rootPane, "Load messages first!");
+        }
+    }//GEN-LAST:event_exportButtonActionPerformed
+
+    private void exportFileFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportFileFieldActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_exportFileFieldActionPerformed
+
+    private void exportSelectedButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportSelectedButtonActionPerformed
+        // TODO add your handling code here:
+        if (!(fileLocationField.getText().equals("...")) && (contactListBox.isEnabled())) {
+            BufferedWriter outputWriter = null;
+            String tempLocation = "";
+            int returnValue = saveChooser.showSaveDialog(smsBackupReaderGUI.this);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                try {
+                    saveFile = saveChooser.getSelectedFile();
+                    tempLocation = saveFile.getAbsolutePath();
+                    exportFileField.setText(tempLocation);
+
+
+                    outputWriter = new BufferedWriter(new FileWriter(tempLocation));
+
+                    contact selectedContact = (contact)contactListBox.getSelectedValue();
+                    ArrayList<message> selectedMessages = selectedContact.getMessages();
+                    outputWriter.write(selectedContact.toString());
+                    outputWriter.newLine();
+                    outputWriter.newLine();
+
+                    for (int i = 0;i < selectedMessages.size();i++) {
+                        outputWriter.write(selectedMessages.get(i).toString());
+                        outputWriter.newLine();
+                    }
+                    
+                    if (outputWriter != null) {
+                        outputWriter.flush();
+                        outputWriter.close();
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(smsBackupReaderGUI.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+            }
+        }
+        else {
+            JOptionPane.showMessageDialog(rootPane, "Load messages first!");
+        }
+    }//GEN-LAST:event_exportSelectedButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -486,11 +640,15 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     private javax.swing.JButton chooseButton;
     private javax.swing.JList contactListBox;
     private javax.swing.JMenu exitMenuButton;
+    private javax.swing.JButton exportButton;
+    private javax.swing.JTextField exportFileField;
+    private javax.swing.JButton exportSelectedButton;
     private javax.swing.JFileChooser fileChooser;
     private javax.swing.JTextField fileLocationField;
     private javax.swing.JMenuItem helpMenuButton;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JScrollPane jScrollPane1;
@@ -499,5 +657,6 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     private javax.swing.JMenuBar menuBar;
     private javax.swing.JTextArea messageTextBox;
     private javax.swing.JTextField numberTextBox;
+    private javax.swing.JFileChooser saveChooser;
     // End of variables declaration//GEN-END:variables
 }
