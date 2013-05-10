@@ -16,6 +16,8 @@ import javax.swing.JFileChooser;
 import java.util.*;
 import java.io.*;
 import java.math.BigInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.JOptionPane;
 import javax.swing.ListModel;
 
@@ -25,6 +27,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Element;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -37,12 +40,22 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     File openFile;
     File saveFile;
     private static String countryCode;
+    private static BigInteger timeOffset;
+    
+    private static String englishHelp = "English:\nHow to use this program:\n\n1) Enter your country code. This will make it so the SMS conversations are correct.\n2) Choose a XML backup file to load. This needs to be a file from SMS Backup & Restore by Ritesh.\n3) After you choose a file, click the Load! button. This will display the messages.\n\nYou can view different conversations by click on different contacts.\n\nTo export a conversation, you can either click Export All, or choose a conversation and click Export Selected.\n";
+    private static String hindiHelp = "हिंदी:\nकैसे इस कार्यक्रम का उपयोग करने के लिए\n1) अपने देश कोड दर्ज करें. यह बना तो एसएमएस वार्तालापों सही हैं.\n2) एक XML बैकअप फ़ाइल लोड करने के लिए चुनें. यह SMS Backup and Restore से एक फ़ाइल की जरूरत है.\n3) आप किसी फ़ाइल का चयन करने के बाद, Load! पर क्लिक करें. यह संदेश प्रदर्शित करेगा.\n\nआप विभिन्न संपर्कों पर क्लिक करके विभिन्न वार्तालापों को देख सकते हैं.\n\nनिर्यात एक बातचीत करने के लिए, आप या तो क्लिक करें सभी निर्यात कर सकते हैं या एक वार्तालाप चुनें और चयनित निर्यात क्लिक करें .\n";
+    private static String spanishHelp = "Español:\nCómo utilizar este programa:\n\n1) Ponga tu código de país. Esto lo hará para presentar a Ud. las conversaciones SMS en la orden correcta.\n2) Selecciona un archivo XML para cargar. Esto tiene que ser un archivo de SMS Backup & Restore por Ritesh.\n3) Después de seleccionar un archivo, oprima Load!. Esto mostrará los mensajes.\n\nPara ver las conversaciones diferentes, haga un clic en los diferentes contactos.\n\nPara exportar una conversación, pueda hacer clic en Export All, o eliger una conversación y haga un clic en Export Selected.\n";
+    private static String germanHelp = "Deutsch:\nWie dieses Programm zu verwenden:\n\n1) Geben Sie Ihre Vorwahl. Dadurch wird es so den SMS Gespräche korrekt sind.\n2) Wählen Sie ein XML-Backup-Datei zu laden. Dies muss eine Datei von SMS Backup & Restore von Ritesh werden.\n3) Nachdem Sie eine Datei auswählen, klicken Sie auf Load! .Dies zeigt die Nachrichten.\n\nSie können verschiedene Gespräche per Klick auf verschiedene Kontakte anzuzeigen.\n\nSo exportieren Sie ein Gespräch, können Sie entweder auf Export All, oder wählen Sie ein Gespräch und klicken Sie auf Export Selected.\n";
     
     private static message getText(Element empEl)
 	{
 		String addressString = empEl.getAttribute("address");
 		addressString = removeExtraDigits(addressString);
-			
+		
+                // Just in case, make sure its not empty
+                if(addressString.isEmpty())
+                    addressString = "0";
+                
 		BigInteger address = new BigInteger(addressString);
 		
 		BigInteger date = new BigInteger(empEl.getAttribute("date"));
@@ -58,14 +71,22 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     // Removes non-digits and country code from phone number
     private static String removeExtraDigits(String inputAddress)
     {
-	inputAddress = inputAddress.replaceAll("\\D", "");
-	if (inputAddress.startsWith(countryCode))
+        // If it is a draft message, the address is "null"
+	if (inputAddress.equalsIgnoreCase("null"))
+            return "0";
+        
+        inputAddress = inputAddress.replaceAll("\\D", "");
+        
+        // For short codes/other similar stuff
+        if (inputAddress.length() <= 5)
+            return inputAddress;
+        else if (inputAddress.startsWith(countryCode))
 		inputAddress = inputAddress.substring(countryCode.length());
 	return inputAddress;
     }
     
     // message object
-    private static class message
+    private static class message implements Comparable<message>
 	{
 		private String messageText;
 		private int messageType;
@@ -85,12 +106,24 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 		public message(BigInteger address,BigInteger date,String body,int type)
 		{
 			messageType = type;
-			messageDate = date;
+			//messageDate = date;
+                        
+                        messageDate = date;
+                        // If it is a received message, add the offset
+                        if (messageType == 1)
+                            messageDate = messageDate.add(timeOffset);
 			messageText = body;
 			messageAddress = address;
                         messageDateFormat = new Date(messageDate.longValue());
 		}
 		
+        @Override
+                public int compareTo(message msg2) 
+                { 
+                    
+                        return (this.getMessageDate().compareTo(msg2.getMessageDate())); 
+                }
+                
 		public void setMessageText(String input)
 		{
 			messageText = input;
@@ -132,6 +165,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 			return messageAddress;
 		}
 		
+        @Override
 		public String toString()
 		{
 			String tempString;
@@ -213,6 +247,15 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
         fileChooser = new javax.swing.JFileChooser();
         saveChooser = new javax.swing.JFileChooser();
+        helpFrame = new javax.swing.JFrame();
+        jButton1 = new javax.swing.JButton();
+        englishRadio = new javax.swing.JRadioButton();
+        spanishRadio = new javax.swing.JRadioButton();
+        hindiRadio = new javax.swing.JRadioButton();
+        germanRadio = new javax.swing.JRadioButton();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        helpTextArea = new javax.swing.JTextArea();
+        languageGroup = new javax.swing.ButtonGroup();
         fileLocationField = new javax.swing.JTextField();
         chooseButton = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
@@ -228,6 +271,8 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         exportFileField = new javax.swing.JTextField();
         exportSelectedButton = new javax.swing.JButton();
         jLabel3 = new javax.swing.JLabel();
+        offsetField = new javax.swing.JTextField();
+        jLabel4 = new javax.swing.JLabel();
         menuBar = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         exitMenuButton = new javax.swing.JMenu();
@@ -239,8 +284,102 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         saveChooser.setDialogType(javax.swing.JFileChooser.SAVE_DIALOG);
         saveChooser.setSelectedFile(new java.io.File("C:\\Program Files (x86)\\NetBeans 7.0\\SMS_Export.txt"));
 
+        helpFrame.setTitle("Help");
+        helpFrame.setMinimumSize(new java.awt.Dimension(700, 550));
+        helpFrame.setResizable(false);
+
+        jButton1.setText("Close");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        languageGroup.add(englishRadio);
+        englishRadio.setSelected(true);
+        englishRadio.setText("English");
+        englishRadio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                englishRadioActionPerformed(evt);
+            }
+        });
+
+        languageGroup.add(spanishRadio);
+        spanishRadio.setText("Español");
+        spanishRadio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                spanishRadioActionPerformed(evt);
+            }
+        });
+
+        languageGroup.add(hindiRadio);
+        hindiRadio.setText("हिंदी");
+        hindiRadio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                hindiRadioActionPerformed(evt);
+            }
+        });
+
+        languageGroup.add(germanRadio);
+        germanRadio.setText("Deutsch");
+        germanRadio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                germanRadioActionPerformed(evt);
+            }
+        });
+
+        helpTextArea.setColumns(20);
+        helpTextArea.setEditable(false);
+        helpTextArea.setLineWrap(true);
+        helpTextArea.setRows(5);
+        helpTextArea.setText("English:\nHow to use this program:\n\n1) Enter your country code. This will make it so the SMS conversations are correct.\n2) Choose a XML backup file to load. This needs to be a file from SMS Backup & Restore by Ritesh.\n3) After you choose a file, click the Load! button. This will display the messages.\n\nYou can view different conversations by click on different contacts.\n\nTo export a conversation, you can either click Export All, or choose a conversation and click Export Selected.");
+        helpTextArea.setOpaque(false);
+        helpTextArea.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                helpTextAreaFocusGained(evt);
+            }
+        });
+        jScrollPane3.setViewportView(helpTextArea);
+
+        javax.swing.GroupLayout helpFrameLayout = new javax.swing.GroupLayout(helpFrame.getContentPane());
+        helpFrame.getContentPane().setLayout(helpFrameLayout);
+        helpFrameLayout.setHorizontalGroup(
+            helpFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(helpFrameLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(helpFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jButton1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 123, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(helpFrameLayout.createSequentialGroup()
+                        .addGroup(helpFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(spanishRadio)
+                            .addComponent(hindiRadio)
+                            .addComponent(germanRadio)
+                            .addComponent(englishRadio))
+                        .addGap(18, 18, 18)
+                        .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 601, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        helpFrameLayout.setVerticalGroup(
+            helpFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(helpFrameLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(helpFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(helpFrameLayout.createSequentialGroup()
+                        .addComponent(englishRadio)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(spanishRadio)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(hindiRadio)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(germanRadio))
+                    .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 499, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton1)
+                .addContainerGap())
+        );
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("SMS Backup Reader v0.3.5");
+        setTitle("SMS Backup Reader v0.6");
 
         fileLocationField.setEditable(false);
         fileLocationField.setText("...");
@@ -285,7 +424,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
         messageTextBox.setColumns(20);
         messageTextBox.setEditable(false);
-        messageTextBox.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        messageTextBox.setFont(new java.awt.Font("Arial", 0, 12));
         messageTextBox.setLineWrap(true);
         messageTextBox.setRows(5);
         messageTextBox.setText("This is where the messages will show up.");
@@ -328,9 +467,19 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
         jLabel3.setText("Use the options below to export the SMS to a text file. You can either export the selected contact, or all:");
 
+        offsetField.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        offsetField.setText("0");
+
+        jLabel4.setText("Hours offset for received SMS:");
+
         jMenu1.setText("File");
 
         exitMenuButton.setText("Exit");
+        exitMenuButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exitMenuButtonActionPerformed(evt);
+            }
+        });
         jMenu1.add(exitMenuButton);
 
         menuBar.add(jMenu1);
@@ -338,6 +487,11 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         jMenu2.setText("Help");
 
         helpMenuButton.setText("Help");
+        helpMenuButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                helpMenuButtonActionPerformed(evt);
+            }
+        });
         jMenu2.add(helpMenuButton);
 
         aboutMenuButton.setText("About...");
@@ -360,31 +514,35 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel1)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(areaCodeTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 376, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(fileLocationField, javax.swing.GroupLayout.DEFAULT_SIZE, 483, Short.MAX_VALUE)
-                            .addGroup(layout.createSequentialGroup()
+                        .addComponent(exportFileField, javax.swing.GroupLayout.DEFAULT_SIZE, 366, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(exportSelectedButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(exportButton, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel3)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
+                                .addComponent(jLabel1)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(areaCodeTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jLabel4)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(offsetField, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(fileLocationField, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 485, Short.MAX_VALUE)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
                                 .addComponent(jLabel2)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addComponent(numberTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(loadButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(chooseButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 374, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(exportFileField, javax.swing.GroupLayout.DEFAULT_SIZE, 364, Short.MAX_VALUE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(exportSelectedButton)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(exportButton, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jLabel3))
+                            .addComponent(chooseButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -393,7 +551,9 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                 .addGap(17, 17, 17)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
-                    .addComponent(areaCodeTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(areaCodeTextBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel4)
+                    .addComponent(offsetField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(chooseButton)
@@ -416,8 +576,6 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                     .addComponent(exportSelectedButton))
                 .addContainerGap())
         );
-
-        getAccessibleContext().setAccessibleName("SMS Backup Reader v0.3.5");
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -443,7 +601,9 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         if (!(fileLocationField.getText().equals("..."))) {
             try {
                 // TODO add your handling code here:
-
+                    
+                    String documentString;
+                
                     contactListBox.setEnabled(true);
                     contactListBox.removeAll();
                     messageTextBox.removeAll();
@@ -454,10 +614,15 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                     // Get country code from areaCodeTextBox
                     countryCode = areaCodeTextBox.getText();
 
+                    // Get time offset from offsetField
+                    timeOffset = BigInteger.valueOf(Integer.parseInt(offsetField.getText()) * 3600000);
+                    
                     File fXmlFile = openFile;
+                     
                     DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
                     DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
                     Document doc = dBuilder.parse(fXmlFile);
+                    
                     doc.getDocumentElement().normalize();
 
                     Element docEle = doc.getDocumentElement();
@@ -467,7 +632,6 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                     if(nl != null && nl.getLength() > 0) {
                             numberTextBox.setText("" + nl.getLength());
                             for(int i = 0 ; i < nl.getLength();i++) {
-
                                     //Get the message element
                                     Element el = (Element)nl.item(i);
 
@@ -489,8 +653,20 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
                                     // End section
                             }
                     }
+                    
                     Collection tempColl = contactTable.values();
                     contact[] contactArray = (contact[])tempColl.toArray(new contact[contactTable.size()]);
+                    
+                    
+                    // Sort each contacts' messages
+                    for (int c = 0; c < contactArray.length; c++)
+                    {
+                        Collections.sort(contactArray[c].messageList);
+                                
+                    }
+                    
+                    
+                    
                     contactListBox.setListData(contactArray);
                     contactListBox.setEnabled(true);
 
@@ -519,7 +695,7 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
 
     private void aboutMenuButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutMenuButtonActionPerformed
         // TODO add your handling code here:
-        JOptionPane.showMessageDialog(rootPane, "SMS Backup Reader\nv0.3.5 - 2011-10-26\nBy xtnetworks\nxtnetworks@users.sf.net");
+        JOptionPane.showMessageDialog(rootPane, "SMS Backup Reader\nv0.6 - 2012-05-20\nBy Matt (devadvance)\nxtnetworks@users.sf.net");
     }//GEN-LAST:event_aboutMenuButtonActionPerformed
 
     private void areaCodeTextBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_areaCodeTextBoxActionPerformed
@@ -624,6 +800,46 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_exportSelectedButtonActionPerformed
 
+    private void helpMenuButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_helpMenuButtonActionPerformed
+        // TODO add your handling code here:
+        helpFrame.setVisible(true);
+    }//GEN-LAST:event_helpMenuButtonActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        // TODO add your handling code here:
+        helpFrame.setVisible(false);
+}//GEN-LAST:event_jButton1ActionPerformed
+
+    private void spanishRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_spanishRadioActionPerformed
+        // TODO add your handling code here:
+        helpTextArea.setText(spanishHelp);
+    }//GEN-LAST:event_spanishRadioActionPerformed
+
+    private void helpTextAreaFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_helpTextAreaFocusGained
+        // TODO add your handling code here:
+        
+    }//GEN-LAST:event_helpTextAreaFocusGained
+
+    private void englishRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_englishRadioActionPerformed
+        // TODO add your handling code here:
+        helpTextArea.setText(englishHelp);
+    }//GEN-LAST:event_englishRadioActionPerformed
+
+    private void hindiRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_hindiRadioActionPerformed
+        // TODO add your handling code here:
+        helpTextArea.setText(hindiHelp);
+    }//GEN-LAST:event_hindiRadioActionPerformed
+
+    private void germanRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_germanRadioActionPerformed
+        // TODO add your handling code here:
+        helpTextArea.setText(germanHelp);
+    }//GEN-LAST:event_germanRadioActionPerformed
+
+    private void exitMenuButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exitMenuButtonActionPerformed
+        // TODO add your handling code here:
+        
+    }//GEN-LAST:event_exitMenuButtonActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -639,24 +855,35 @@ public class smsBackupReaderGUI extends javax.swing.JFrame {
     private javax.swing.JTextField areaCodeTextBox;
     private javax.swing.JButton chooseButton;
     private javax.swing.JList contactListBox;
+    private javax.swing.JRadioButton englishRadio;
     private javax.swing.JMenu exitMenuButton;
     private javax.swing.JButton exportButton;
     private javax.swing.JTextField exportFileField;
     private javax.swing.JButton exportSelectedButton;
     private javax.swing.JFileChooser fileChooser;
     private javax.swing.JTextField fileLocationField;
+    private javax.swing.JRadioButton germanRadio;
+    private javax.swing.JFrame helpFrame;
     private javax.swing.JMenuItem helpMenuButton;
+    private javax.swing.JTextArea helpTextArea;
+    private javax.swing.JRadioButton hindiRadio;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.ButtonGroup languageGroup;
     private javax.swing.JButton loadButton;
     private javax.swing.JMenuBar menuBar;
     private javax.swing.JTextArea messageTextBox;
     private javax.swing.JTextField numberTextBox;
+    private javax.swing.JTextField offsetField;
     private javax.swing.JFileChooser saveChooser;
+    private javax.swing.JRadioButton spanishRadio;
     // End of variables declaration//GEN-END:variables
 }
