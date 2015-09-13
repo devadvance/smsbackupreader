@@ -1,7 +1,9 @@
 SMS Backup Reader
 =================
 
-This program is designed to read the XML backup files produced by the Android app SMS Backup & Restore by Ritesh.
+This Java program is designed to read the XML backup files produced by the Android app SMS Backup & Restore by Ritesh. Works on any Java-supported platform (Windows, OS X, Linux, etc.).
+
+See releases for binary downloads.
 
 Instructions: http://devadvance.com/sms-backup-reader/
 
